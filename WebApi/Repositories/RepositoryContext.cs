@@ -5,7 +5,7 @@ namespace WebApi.Repositories
 {
     //"Benim 'Books' adında bir tablom olacak ve bu tablo Book nesnelerinden oluşacak"
     //gemini geçmişine bakıp kodun açıklamasını yaz!
-    //github a bu projeyi ekle
+    //github a bu projeyi ekledim
     public class RepositoryContext : DbContext
     {
         public RepositoryContext(DbContextOptions options) 
