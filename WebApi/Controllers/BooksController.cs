@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Models;
 using WebApi.Repositories;
 //Bu dosyanın amacı, BooksController'ın (Sipariş Ofisi) veritabanına (Depo) doğrudan erişmesini engellemektir.
 //Bunu yaparak BooksController, bir RepositoryContext'in nasıl yaratıldığını bilmek zorunda kalmaz. Sadece ona verilmesini talep eder.
@@ -35,8 +37,146 @@ namespace WebApi.Controllers
         [HttpGet]
         public IActionResult GetAllBooks()
         {
-            var books = _context.Books.ToList();
-            return Ok(books);
+            try
+            {
+                var books = _context.Books.ToList();
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+
+                throw new Exception(ex.Message);
+            }
+
+        }
+        [HttpGet("{id:int}")]
+        public IActionResult GetOneBooks([FromRoute(Name = "id")] int id)//parametreler karışmasın diye
+        {
+            try
+            {
+                var book = _context
+                .Books
+                .Where(b => b.Id.Equals(id))
+                .SingleOrDefault();
+
+                if (book is null)
+                    return NotFound(); //error 404
+
+                return Ok(book);
+            }
+            catch (Exception ex)
+            {
+
+                throw new Exception(ex.Message);
+            }
+            
+        }
+        //====POST İSTEKLERİ====
+        [HttpPost]
+        public IActionResult CreateOneBook([FromBody] Book book)
+        {
+            try
+            {
+                if (book is null)
+                    return BadRequest(); //400
+
+                _context.Books.Add(book);
+                _context.SaveChanges();
+                return StatusCode(201, book);
+
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex.Message);
+            }
+        }
+
+        //====PUT İSTEKLERİ====
+        [HttpPut("{id:int}")]
+        public IActionResult UpdateOneBook([FromRoute(Name = "id")] int id,
+            [FromBody] Book book)
+        {
+
+            try
+            {
+                //check book?
+                var entity = _context
+                    .Books
+                    .Where(b => b.Id.Equals(id))
+                    .SingleOrDefault();
+                if (entity is null)
+                    return NotFound();//404
+
+                //check id
+                if (id != book.Id)
+                    return BadRequest();//400
+
+
+                entity.Title = book.Title;
+                entity.Price = book.Price;
+                _context.SaveChanges();
+                    return Ok(book);
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex.Message);
+            }
+
+        }
+
+        //====DELETE İSTEKLERİ====
+        [HttpDelete("{id:int}")]
+        public IActionResult DeleteOneBooks([FromRoute(Name = "id")] int id)
+        {
+            try
+            {
+                var entity = _context
+                .Books
+                .Where(b => b.Id.Equals(id))
+                .SingleOrDefault();
+
+                if (entity is null) return NotFound(new
+                {
+                    statusCode = 404,
+                    message = $"Book with id:{id} could not found."
+                });//404
+
+                _context.Books.Remove(entity);
+                _context.SaveChanges();
+                    return NoContent();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        //====PATCH İSTEKLERİ====
+        [HttpPatch("{id:int}")]
+        public IActionResult PartiallyUpdateOneBook([FromRoute(Name = "id")] int id,
+            [FromBody] JsonPatchDocument<Book> bookPatch)
+        {
+            try
+            {
+                //check entity
+                var entity = _context
+                    .Books
+                    .Where(b => b.Id.Equals(id))
+                    .SingleOrDefault();
+
+                if (entity is null) return NotFound();//404
+
+                bookPatch.ApplyTo(entity);
+                _context.SaveChanges();
+                return NoContent();//204
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
         }
     }
 }
